@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  chat-service:
+    build: .
+    ports:
+      - "8002:8000"
+    env_file:
+      - app/.env
+    restart: always
+    depends_on:
+      - redis
+      - rabbitmq
+    networks:
+      - lawly_grpc
+      - lawly_db
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - lawly_grpc
+      - lawly_db
+      
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"  # AMQP протокол
+      - "15672:15672"  # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    networks:
+      - lawly_grpc
+      - lawly_db
+
+networks:
+  lawly_grpc:
+    external: true
+  lawly_db:
+    external: true
+
+volumes:
+  redis_data:
+  rabbitmq_data:
