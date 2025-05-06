@@ -4,7 +4,7 @@ services:
   chat-service:
     build: .
     ports:
-      - "8002:8000"
+      - "127.0.0.1:8003:8000"
     env_file:
       - app/.env
     restart: always
@@ -18,7 +18,7 @@ services:
   redis:
     image: redis:alpine
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6355:6379"
     volumes:
       - redis_data:/data
     networks:
@@ -28,8 +28,8 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     ports:
-      - "5672:5672"  # AMQP протокол
-      - "15672:15672"  # Management UI
+      - "127.0.0.1:5672:5672"  # AMQP протокол
+      - "127.0.0.1:15672:15672"  # Management UI
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     environment:
