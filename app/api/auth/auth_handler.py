@@ -4,8 +4,8 @@ import jwt
 from config import settings
 
 
-def sign_jwt(user_id: int) -> str:
-    payload = {"user_id": user_id, "expires": time.time() + 86400}
+def sign_jwt(user_id: int, lawyer: bool = False) -> str:
+    payload = {"user_id": user_id, "expires": time.time() + 86400, "lawyer": lawyer}
     token = jwt.encode(
         payload,
         settings.jwt_settings.secret_key,

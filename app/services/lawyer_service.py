@@ -45,7 +45,9 @@ class LawyerService:
         document_url = None
         user_service_client = UserServiceClient(host=settings.user_service.host, port=settings.user_service.port)
         sub_info = await user_service_client.get_user_info(user_id)
-        # TODO: добавить списание консультаций
+        write_off_consultation = await user_service_client.write_off_consultation(user_id=user_id)
+        if not write_off_consultation:
+            raise AccessDeniedError("Не удалось списать консультацию")
         if sub_info.consultations_used + 1 > sub_info.consultations_total:
             raise AccessDeniedError("У вас закончились консультации")
 
