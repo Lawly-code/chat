@@ -1,0 +1,17 @@
+name: Deploy to Development
+
+on:
+  push:
+    branches: [ development ]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+    - name: Deploy from existing project directory
+      run: |
+        cd /home/lawly/chat
+        git fetch --all
+        git reset --hard origin/development
+        docker compose up -d --build

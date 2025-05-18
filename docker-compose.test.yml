@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  test_chat_service:
+    restart: 'no'
+    build:
+      dockerfile: Dockerfile-test
+    env_file:
+      - .env.test
+    depends_on:
+      - test_postgres
+      - test_rabbitmq
+    networks:
+      - test-network
+
+  test_postgres:
+    restart: 'no'
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_PASSWORD=1234
+      - POSTGRES_USER=test_user
+      - POSTGRES_DB=test_db
+    networks:
+      - test-network
+
+  test_rabbitmq:
+    restart: 'no'
+    image: rabbitmq:3-management
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    networks:
+      - test-network
+
+networks:
+  test-network:
+    driver: bridge

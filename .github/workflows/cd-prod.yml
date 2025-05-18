@@ -1,0 +1,17 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+    - name: Deploy from existing project directory
+      run: |
+        cd /home/lawly-prod/chat
+        git fetch --all
+        git reset --hard origin/master
+        docker compose up -d --build

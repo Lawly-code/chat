@@ -1,0 +1,12 @@
+FROM python:3.12-alpine
+ENV TZ "Europe/Moscow"
+WORKDIR /home/api
+RUN apk update
+RUN apk add git build-base g++ linux-headers python3-dev
+RUN python -m pip install --upgrade pip
+ADD app/requirements.txt .
+RUN pip install -U -r requirements.txt
+ADD tests/requirements.txt ./tests-requirements.txt
+RUN pip install -U -r tests-requirements.txt
+ADD .. .
+CMD ["pytest", "./tests", "-v", "--tb=short", "--disable-warnings"]
