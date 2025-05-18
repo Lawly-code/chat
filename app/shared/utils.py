@@ -4,7 +4,7 @@ from fastapi import Request
 async def ip_address_getter(request: Request) -> str:
     """
     Получение IP-адреса клиента из запроса
-    
+
     :param request: Запрос
     :return: IP-адрес
     """

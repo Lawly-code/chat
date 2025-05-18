@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 @dataclass
 class UserDTO:
     """DTO для тестирования с пользователем"""
+
     user: User
     refresh_session: RefreshSession
     token: str
@@ -16,6 +17,7 @@ class UserDTO:
 @dataclass
 class MessageDTO:
     """DTO для тестирования с сообщениями"""
+
     user_message: Message
     ai_message: Message
     session: AsyncSession
@@ -24,6 +26,7 @@ class MessageDTO:
 @dataclass
 class LawyerDTO:
     """DTO для тестирования с юристом"""
+
     user: User
     lawyer: Lawyer
     token: str
@@ -32,6 +35,7 @@ class LawyerDTO:
 @dataclass
 class LawyerRequestDTO:
     """DTO для тестирования с заявкой юриста"""
+
     user: User
     lawyer: Lawyer
     request: LawyerRequest

@@ -12,7 +12,7 @@ class LawyerRepository(BaseRepository):
     async def get_lawyer_by_user_id(self, user_id: int) -> Lawyer | None:
         """
         Получение юриста по ID пользователя
-        
+
         :param user_id: ID пользователя
         :return: Объект юриста или None, если не найден
         """
@@ -23,7 +23,7 @@ class LawyerRepository(BaseRepository):
     async def check_is_lawyer(self, user_id: int) -> bool:
         """
         Проверка, является ли пользователь юристом
-        
+
         :param user_id: ID пользователя для проверки
         :return: True если пользователь юрист, False в противном случае
         """

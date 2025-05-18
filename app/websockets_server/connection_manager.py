@@ -16,7 +16,7 @@ class ConnectionManager:
     async def connect(self, websocket: WebSocket, user_id: int):
         """
         Установка нового соединения
-        
+
         :param websocket: WebSocket соединение
         :param user_id: ID пользователя
         """
@@ -29,7 +29,7 @@ class ConnectionManager:
     def disconnect(self, websocket: WebSocket, user_id: int):
         """
         Закрытие соединения
-        
+
         :param websocket: WebSocket соединение
         :param user_id: ID пользователя
         """
@@ -44,7 +44,7 @@ class ConnectionManager:
     async def send_message(self, message: dict, user_id: int):
         """
         Отправка сообщения пользователю
-        
+
         :param message: JSON сообщение
         :param user_id: ID пользователя
         """
@@ -56,12 +56,15 @@ class ConnectionManager:
                 except Exception as e:
                     logger.error(f"Ошибка отправки сообщения: {str(e)}")
                     disconnected.append(connection)
-            
+
             # Удаляем разорванные соединения
             for connection in disconnected:
                 if connection in self.active_connections[user_id]:
                     self.active_connections[user_id].remove(connection)
-            
+
             # Если это было последнее соединение пользователя, удаляем запись
-            if user_id in self.active_connections and not self.active_connections[user_id]:
+            if (
+                user_id in self.active_connections
+                and not self.active_connections[user_id]
+            ):
                 del self.active_connections[user_id]

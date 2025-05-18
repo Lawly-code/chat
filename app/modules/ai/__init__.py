@@ -11,5 +11,5 @@ __all__ = [
     "MessageResponseDTO",
     "MessagesResponseDTO",
     "get_ai_messages_response",
-    "send_ai_message_response"
+    "send_ai_message_response",
 ]

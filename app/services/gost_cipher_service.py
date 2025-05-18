@@ -28,12 +28,14 @@ class GostCipherService:
         return ((y << 11) | (y >> (32 - 11))) & 0xFFFFFFFF
 
     def _split_blocks(self, data: bytes, bs=8):
-        return [data[i:i + bs] for i in range(0, len(data), bs)]
+        return [data[i : i + bs] for i in range(0, len(data), bs)]
 
     def _init_cipher(self, key: bytes):
         if len(key) != 32:
             raise ValueError("Key must be 32 bytes")
-        self.subkeys = [int.from_bytes(key[i * 4:(i + 1) * 4], 'little') for i in range(8)]
+        self.subkeys = [
+            int.from_bytes(key[i * 4 : (i + 1) * 4], 'little') for i in range(8)
+        ]
 
     def encrypt_block(self, block: bytes, key: bytes) -> bytes:
         self._init_cipher(key)
@@ -56,7 +58,7 @@ class GostCipherService:
     def encrypt_cfb(self, data: bytes, key: bytes, iv: bytes | None = None) -> bytes:
         """
         Шифрование данных в режиме CFB
-        
+
         :param data: Данные для шифрования
         :param key: Ключ шифрования
         :param iv: Вектор инициализации (опционально)
@@ -72,7 +74,7 @@ class GostCipherService:
         gamma = iv
         for blk in self._split_blocks(data):
             gamma = self.encrypt_block(gamma, key)
-            stream = gamma[:len(blk)]
+            stream = gamma[: len(blk)]
             cx = bytes(b ^ s for b, s in zip(blk, stream))
             out += cx
             gamma = cx
@@ -81,7 +83,7 @@ class GostCipherService:
     def decrypt_cfb(self, data: bytes, key: bytes) -> bytes:
         """
         Расшифрование данных в режиме CFB
-        
+
         :param data: Зашифрованные данные
         :param key: Ключ шифрования
         :return: Расшифрованные данные
@@ -96,7 +98,7 @@ class GostCipherService:
         gamma = iv
         for blk in self._split_blocks(cipher):
             gamma = self.encrypt_block(gamma, key)
-            stream = gamma[:len(blk)]
+            stream = gamma[: len(blk)]
             px = bytes(c ^ s for c, s in zip(blk, stream))
             out += px
             gamma = blk
@@ -106,7 +108,7 @@ class GostCipherService:
     def encrypt_data(self, data: str | bytes, key: bytes) -> str | bytes:
         """
         Шифрование данных
-        
+
         :param data: Данные для шифрования (строка или байты)
         :param key: Ключ шифрования
         :return: Зашифрованные данные в том же формате
@@ -119,7 +121,7 @@ class GostCipherService:
     def decrypt_data(self, blob: str | bytes, key: bytes) -> str | bytes:
         """
         Расшифрование данных
-        
+
         :param blob: Зашифрованные данные (строка в hex-формате или байты)
         :param key: Ключ шифрования
         :return: Расшифрованные данные в том же формате
@@ -133,7 +135,7 @@ class GostCipherService:
     async def async_encrypt_data(self, data: str | bytes, key: bytes) -> str | bytes:
         """
         Асинхронное шифрование данных
-        
+
         :param data: Данные для шифрования (строка или байты)
         :param key: Ключ шифрования
         :return: Зашифрованные данные в том же формате
@@ -144,7 +146,7 @@ class GostCipherService:
     async def async_decrypt_data(self, blob: str | bytes, key: bytes) -> str | bytes:
         """
         Асинхронное расшифрование данных
-        
+
         :param blob: Зашифрованные данные (строка в hex-формате или байты)
         :param key: Ключ шифрования
         :return: Расшифрованные данные в том же формате

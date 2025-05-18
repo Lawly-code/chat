@@ -76,14 +76,11 @@ async def session() -> AsyncGenerator[AsyncSession, None]:
 def generate_test_token(user_id: int) -> str:
     """
     Генерирует тестовый JWT токен
-    
+
     :param user_id: ID пользователя
     :return: JWT токен
     """
-    payload = {
-        "user_id": user_id,
-        "expires": time.time() + 86400  # 24 часа
-    }
+    payload = {"user_id": user_id, "expires": time.time() + 86400}  # 24 часа
     token = jwt.encode(
         payload,
         settings.jwt_settings.secret_key,
@@ -107,7 +104,7 @@ async def user_dto() -> AsyncGenerator[UserDTO, None]:
         session.add(user)
         await session.commit()
         await session.refresh(user)
-        
+
         # Создаем refresh session для пользователя
         expires_at = (
             datetime.now(UTC)
@@ -124,12 +121,14 @@ async def user_dto() -> AsyncGenerator[UserDTO, None]:
         )
         session.add(refresh_session)
         await session.commit()
-        
+
         # Генерируем токен для тестов
         token = generate_test_token(user.id)
-        
-        yield UserDTO(user=user, refresh_session=refresh_session, token=token, session=session)
-        
+
+        yield UserDTO(
+            user=user, refresh_session=refresh_session, token=token, session=session
+        )
+
         # Очистка после тестов
         await session.delete(user)
         await session.commit()
@@ -139,23 +138,19 @@ async def user_dto() -> AsyncGenerator[UserDTO, None]:
 async def message_dto(user_dto: UserDTO) -> AsyncGenerator[MessageDTO, None]:
     async with async_session_maker() as session:
         message_repo = MessageRepository(session)
-        
+
         # Создаем тестовое сообщение от пользователя
         user_message = await message_repo.create_user_ai_message(
-            user_id=user_dto.user.id,
-            content="Тестовое сообщение"
+            user_id=user_dto.user.id, content="Тестовое сообщение"
         )
-        
+
         # Создаем тестовый ответ от AI
         ai_message = await message_repo.create_ai_response_message(
-            user_id=user_dto.user.id,
-            content="Ответ на тестовое сообщение"
+            user_id=user_dto.user.id, content="Ответ на тестовое сообщение"
         )
-        
+
         yield MessageDTO(
-            user_message=user_message,
-            ai_message=ai_message,
-            session=session
+            user_message=user_message, ai_message=ai_message, session=session
         )
 
 
@@ -175,9 +170,7 @@ async def lawyer_dto(session: AsyncSession) -> AsyncGenerator[LawyerDTO, None]:
     await session.refresh(user)
 
     # Создаем запись юриста
-    lawyer = Lawyer(
-        user_id=user.id
-    )
+    lawyer = Lawyer(user_id=user.id)
     session.add(lawyer)
     await session.commit()
     await session.refresh(lawyer)
@@ -194,15 +187,16 @@ async def lawyer_dto(session: AsyncSession) -> AsyncGenerator[LawyerDTO, None]:
 
 
 @pytest.fixture(scope="function")
-async def lawyer_request_dto(user_dto: UserDTO, lawyer_dto: LawyerDTO,
-                             session: AsyncSession) -> AsyncGenerator[LawyerRequestDTO, None]:
+async def lawyer_request_dto(
+    user_dto: UserDTO, lawyer_dto: LawyerDTO, session: AsyncSession
+) -> AsyncGenerator[LawyerRequestDTO, None]:
     # Создаем тестовую заявку юриста
     lawyer_request = LawyerRequest(
         user_id=user_dto.user.id,
         lawyer_id=lawyer_dto.lawyer.id,
         status=LawyerRequestStatusEnum.PENDING,
         note="Тестовая заявка юристу",
-        document_url="https://example.com/test-document.pdf"  # Добавляем документ_url, т.к. он не может быть null
+        document_url="https://example.com/test-document.pdf",  # Добавляем документ_url, т.к. он не может быть null
     )
     session.add(lawyer_request)
     await session.commit()
@@ -214,7 +208,7 @@ async def lawyer_request_dto(user_dto: UserDTO, lawyer_dto: LawyerDTO,
         request=lawyer_request,
         user_token=user_dto.token,
         lawyer_token=lawyer_dto.token,
-        session=session
+        session=session,
     )
 
     # Очистка после тестов

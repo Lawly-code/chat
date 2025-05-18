@@ -13,14 +13,14 @@ from websockets_server.workers.ai_worker import AIWorker
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await global_init()
-    
+
     ai_worker = AIWorker()
     worker_task = asyncio.create_task(ai_worker.start())
-    
+
     yield
-    
+
     await ai_worker.stop()
-    
+
     try:
         await worker_task
     except asyncio.CancelledError:

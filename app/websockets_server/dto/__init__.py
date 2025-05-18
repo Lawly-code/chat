@@ -6,7 +6,7 @@ from .messages import (
     AIResponseMessage,
     ErrorMessage,
     RabbitMQAIRequest,
-    RabbitMQAIResponse
+    RabbitMQAIResponse,
 )
 
 __all__ = [
@@ -17,5 +17,5 @@ __all__ = [
     "AIResponseMessage",
     "ErrorMessage",
     "RabbitMQAIRequest",
-    "RabbitMQAIResponse"
+    "RabbitMQAIResponse",
 ]

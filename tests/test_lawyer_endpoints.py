@@ -10,7 +10,9 @@ from tests.dto import UserDTO, LawyerDTO, LawyerRequestDTO
 
 
 @pytest.mark.asyncio
-async def test_create_lawyer_request(ac: AsyncClient, user_dto: UserDTO, mocker: MockerFixture):
+async def test_create_lawyer_request(
+    ac: AsyncClient, user_dto: UserDTO, mocker: MockerFixture
+):
     """Тест эндпоинта создания заявки к юристу"""
     description = "Тестовая заявка к юристу"
     document_bytes = base64.b64encode(b"Test document content").decode('utf-8')
@@ -21,34 +23,31 @@ async def test_create_lawyer_request(ac: AsyncClient, user_dto: UserDTO, mocker:
     subscription_mock.consultations_total = 5
     mocker.patch(
         'protos.user_service.client.UserServiceClient.get_user_info',
-        return_value=subscription_mock
+        return_value=subscription_mock,
     )
 
     mocker.patch(
         'protos.user_service.client.UserServiceClient.write_off_consultation',
-        return_value=True
+        return_value=True,
     )
 
     # Мокирем несколько вариантов пути S3
     mocker.patch(
         'services.s3_service.S3Service.upload_file',
-        return_value="https://test-bucket.s3.example.com/test-doc.doc"
+        return_value="https://test-bucket.s3.example.com/test-doc.doc",
     )
     mocker.patch(
         'app.services.s3_service.S3Service.upload_file',
-        return_value="https://test-bucket.s3.example.com/test-doc.doc"
+        return_value="https://test-bucket.s3.example.com/test-doc.doc",
     )
     # Также попробуем замокать класс S3Service целиком
     s3_mock = MagicMock()
     s3_mock.upload_file.return_value = "https://test-bucket.s3.example.com/test-doc.doc"
-    mocker.patch(
-        'app.services.s3_service.S3Service',
-        return_value=s3_mock
-    )
+    mocker.patch('app.services.s3_service.S3Service', return_value=s3_mock)
 
     mocker.patch(
         'app.services.gost_cipher_service.GostCipherService.async_encrypt_data',
-        return_value=b"encrypted_data"
+        return_value=b"encrypted_data",
     )
 
     # Отправляем запрос
@@ -57,8 +56,8 @@ async def test_create_lawyer_request(ac: AsyncClient, user_dto: UserDTO, mocker:
         headers={"Authorization": f"Bearer {user_dto.token}"},
         json={
             "description": description,
-            "document_bytes": list(document_bytes.encode())
-        }
+            "document_bytes": list(document_bytes.encode()),
+        },
     )
 
     # Проверяем результат
@@ -70,13 +69,15 @@ async def test_create_lawyer_request(ac: AsyncClient, user_dto: UserDTO, mocker:
 
 
 @pytest.mark.asyncio
-async def test_get_lawyer_requests(ac: AsyncClient, lawyer_dto: LawyerDTO, lawyer_request_dto: LawyerRequestDTO):
+async def test_get_lawyer_requests(
+    ac: AsyncClient, lawyer_dto: LawyerDTO, lawyer_request_dto: LawyerRequestDTO
+):
     """Тест эндпоинта получения заявок юриста"""
     # Отправляем запрос
     response = await ac.get(
         "/api/v1/chat/lawyer/requests",
         headers={"Authorization": f"Bearer {lawyer_dto.token}"},
-        params={"status": "pending"}
+        params={"status": "pending"},
     )
 
     # Проверяем результат
@@ -99,7 +100,7 @@ async def test_get_completed_lawyer_requests(ac: AsyncClient, lawyer_dto: Lawyer
     response = await ac.get(
         "/api/v1/chat/lawyer/requests",
         headers={"Authorization": f"Bearer {lawyer_dto.token}"},
-        params={"status": "completed"}
+        params={"status": "completed"},
     )
 
     # Проверяем результат
@@ -112,8 +113,13 @@ async def test_get_completed_lawyer_requests(ac: AsyncClient, lawyer_dto: Lawyer
 
 
 @pytest.mark.asyncio
-async def test_update_lawyer_request(ac: AsyncClient, lawyer_dto: LawyerDTO, lawyer_request_dto: LawyerRequestDTO,
-                                     session, mocker: MockerFixture):
+async def test_update_lawyer_request(
+    ac: AsyncClient,
+    lawyer_dto: LawyerDTO,
+    lawyer_request_dto: LawyerRequestDTO,
+    session,
+    mocker: MockerFixture,
+):
     """Тест эндпоинта обновления заявки юриста"""
     # Подготовка тестовых данных
     new_status = "processing"
@@ -122,10 +128,7 @@ async def test_update_lawyer_request(ac: AsyncClient, lawyer_dto: LawyerDTO, law
     response = await ac.put(
         "/api/v1/chat/lawyer/requests/update",
         headers={"Authorization": f"Bearer {lawyer_dto.token}"},
-        json={
-            "request_id": lawyer_request_dto.request.id,
-            "status": new_status
-        }
+        json={"request_id": lawyer_request_dto.request.id, "status": new_status},
     )
 
     # Проверяем результат
@@ -136,7 +139,7 @@ async def test_update_lawyer_request(ac: AsyncClient, lawyer_dto: LawyerDTO, law
     get_response = await ac.get(
         "/api/v1/chat/lawyer/requests",
         headers={"Authorization": f"Bearer {lawyer_dto.token}"},
-        params={"status": "processing"}
+        params={"status": "processing"},
     )
     assert get_response.status_code == 200
     data = get_response.json()
@@ -152,8 +155,12 @@ async def test_update_lawyer_request(ac: AsyncClient, lawyer_dto: LawyerDTO, law
 
 
 @pytest.mark.asyncio
-async def test_complete_lawyer_request(ac: AsyncClient, lawyer_dto: LawyerDTO, lawyer_request_dto: LawyerRequestDTO,
-                                       mocker: MockerFixture):
+async def test_complete_lawyer_request(
+    ac: AsyncClient,
+    lawyer_dto: LawyerDTO,
+    lawyer_request_dto: LawyerRequestDTO,
+    mocker: MockerFixture,
+):
     """Тест эндпоинта завершения заявки юриста"""
     # Подготовка тестовых данных
     description = "Работа выполнена"
@@ -162,29 +169,28 @@ async def test_complete_lawyer_request(ac: AsyncClient, lawyer_dto: LawyerDTO, l
     # Мокируем S3 несколькими способами для надежности
     mocker.patch(
         'services.s3_service.S3Service.upload_file',
-        return_value="https://test-bucket.s3.example.com/completed-doc.doc"
+        return_value="https://test-bucket.s3.example.com/completed-doc.doc",
     )
     mocker.patch(
         'app.services.s3_service.S3Service.upload_file',
-        return_value="https://test-bucket.s3.example.com/completed-doc.doc"
+        return_value="https://test-bucket.s3.example.com/completed-doc.doc",
     )
     mocker.patch(
         'app.services.lawyer_service.S3Service.upload_file',
-        return_value="https://test-bucket.s3.example.com/completed-doc.doc"
+        return_value="https://test-bucket.s3.example.com/completed-doc.doc",
     )
 
     # Создаем мок объект для S3Service
     s3_mock = MagicMock()
-    s3_mock.upload_file.return_value = "https://test-bucket.s3.example.com/completed-doc.doc"
-    mocker.patch(
-        'app.services.s3_service.S3Service',
-        return_value=s3_mock
+    s3_mock.upload_file.return_value = (
+        "https://test-bucket.s3.example.com/completed-doc.doc"
     )
+    mocker.patch('app.services.s3_service.S3Service', return_value=s3_mock)
 
     # Мокируем метод шифрования
     mocker.patch(
         'app.services.gost_cipher_service.GostCipherService.async_encrypt_data',
-        return_value=b"encrypted_data"
+        return_value=b"encrypted_data",
     )
 
     # Отправляем запрос
@@ -195,8 +201,8 @@ async def test_complete_lawyer_request(ac: AsyncClient, lawyer_dto: LawyerDTO, l
             "request_id": lawyer_request_dto.request.id,
             "status": "completed",
             "description": description,
-            "document_bytes": list(document_bytes.encode())
-        }
+            "document_bytes": list(document_bytes.encode()),
+        },
     )
 
     # Проверяем результат
@@ -204,7 +210,9 @@ async def test_complete_lawyer_request(ac: AsyncClient, lawyer_dto: LawyerDTO, l
 
 
 @pytest.mark.asyncio
-async def test_get_document(ac: AsyncClient, lawyer_dto: LawyerDTO, session, mocker: MockerFixture):
+async def test_get_document(
+    ac: AsyncClient, lawyer_dto: LawyerDTO, session, mocker: MockerFixture
+):
     """Тест эндпоинта получения документа"""
 
     # Сначала подготовим и отправим заявку
@@ -213,25 +221,24 @@ async def test_get_document(ac: AsyncClient, lawyer_dto: LawyerDTO, session, moc
 
     # Более агрессивно мокируем S3Service полностью
     s3_service_mock = MagicMock()
-    s3_service_mock.upload_file = AsyncMock(return_value="https://test-bucket.s3.example.com/test-doc.doc")
-    s3_service_mock.download_file = AsyncMock(return_value=b"downloaded_encrypted_data")
-    mocker.patch.object(
-        S3Service, '__new__',
-        return_value=s3_service_mock
+    s3_service_mock.upload_file = AsyncMock(
+        return_value="https://test-bucket.s3.example.com/test-doc.doc"
     )
-    
+    s3_service_mock.download_file = AsyncMock(return_value=b"downloaded_encrypted_data")
+    mocker.patch.object(S3Service, '__new__', return_value=s3_service_mock)
+
     # Мокируем все необходимые методы
     mocker.patch(
         'protos.user_service.client.UserServiceClient.get_user_info',
-        return_value=MagicMock(consultations_used=0, consultations_total=5)
+        return_value=MagicMock(consultations_used=0, consultations_total=5),
     )
     mocker.patch(
         'protos.user_service.client.UserServiceClient.write_off_consultation',
-        return_value=True
+        return_value=True,
     )
     mocker.patch(
         'app.services.gost_cipher_service.GostCipherService.async_encrypt_data',
-        return_value=b"encrypted_data"
+        return_value=b"encrypted_data",
     )
 
     # Отправляем заявку через API
@@ -240,8 +247,8 @@ async def test_get_document(ac: AsyncClient, lawyer_dto: LawyerDTO, session, moc
         headers={"Authorization": f"Bearer {lawyer_dto.token}"},
         json={
             "description": description,
-            "document_bytes": list(document_bytes.encode())
-        }
+            "document_bytes": list(document_bytes.encode()),
+        },
     )
     assert create_response.status_code == 201
     request_id = create_response.json()["id"]
@@ -249,30 +256,30 @@ async def test_get_document(ac: AsyncClient, lawyer_dto: LawyerDTO, session, moc
     # Завершаем заявку, чтобы был документ для скачивания
     mocker.patch(
         'app.services.s3_service.S3Service.download_file',
-        return_value=b"downloaded_encrypted_data"
+        return_value=b"downloaded_encrypted_data",
     )
     mocker.patch(
         'app.services.gost_cipher_service.GostCipherService.async_decrypt_data',
-        return_value=b"decrypted_document_data"
+        return_value=b"decrypted_document_data",
     )
 
     # Получаем документ
     mocker.patch(
         'app.services.lawyer_service.LawyerService.get_document',
-        return_value=b"decrypted_document_data"
+        return_value=b"decrypted_document_data",
     )
 
     # Отправляем запрос на получение документа
     response = await ac.get(
         "/api/v1/chat/lawyer/document",
         headers={"Authorization": f"Bearer {lawyer_dto.token}"},
-        params={"lawyer_request_id": request_id}
+        params={"lawyer_request_id": request_id},
     )
 
     # Мокируем все вызовы до получения ответа
     mocker.patch(
         'app.services.gost_cipher_service.GostCipherService.async_decrypt_data',
-        return_value=b"decrypted_document_data"
+        return_value=b"decrypted_document_data",
     )
 
     # Проверяем только код ответа, так как содержимое может быть мокировано по-разному
@@ -286,7 +293,7 @@ async def test_access_denied_for_non_lawyer(ac: AsyncClient, user_dto: UserDTO):
     response = await ac.get(
         "/api/v1/chat/lawyer/requests",
         headers={"Authorization": f"Bearer {user_dto.token}"},
-        params={"status": "pending"}
+        params={"status": "pending"},
     )
 
     # Проверяем результат

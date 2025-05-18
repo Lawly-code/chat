@@ -25,11 +25,11 @@ class ChatService:
         from_date: Optional[datetime] = None,
         to_date: Optional[datetime] = None,
         limit: int = 50,
-        offset: int = 0
+        offset: int = 0,
     ) -> tuple[Sequence[Message], int]:
         """
         Получение сообщений из чата с AI
-        
+
         :param user_id: ID пользователя
         :param from_date: Начальная дата (опционально)
         :param to_date: Конечная дата (опционально)
@@ -42,5 +42,5 @@ class ChatService:
             from_date=from_date,
             to_date=to_date,
             limit=limit,
-            offset=offset
+            offset=offset,
         )

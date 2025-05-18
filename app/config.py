@@ -20,7 +20,7 @@ class JWTSettings(BaseSettings):
 
 class RabbitMQSettings(BaseSettings):
     url: str = "amqp://guest:guest@rabbitmq:5672/"
-    
+
     model_config = SettingsConfigDict(
         env_prefix="rabbitmq_", env_file_encoding="utf-8", extra="ignore"
     )

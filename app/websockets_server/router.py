@@ -11,11 +11,11 @@ router = APIRouter(tags=["WebSockets"])
 async def websocket_route(
     websocket: WebSocket,
     token: str = Query(...),
-    session: AsyncSession = Depends(get_session)
+    session: AsyncSession = Depends(get_session),
 ):
     """
     WebSocket эндпоинт для взаимодействия с AI в реальном времени
-    
+
     :param websocket: WebSocket соединение
     :param token: JWT токен для аутентификации
     :param session: Сессия базы данных
