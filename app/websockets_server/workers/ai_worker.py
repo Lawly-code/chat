@@ -18,7 +18,7 @@ class AIWorker:
 
     def __init__(self):
         self.rabbitmq_service = RabbitMQService()
-        self.ai_client = AIClientService()  # Явно создаем экземпляр AI Client Service
+        self.ai_client = AIClientService()
         self.running = False
 
     async def process_message(self, data: dict[str, Any]):
@@ -34,7 +34,6 @@ class AIWorker:
         logger.info(f"Обработка запроса к AI: user_id={user_id}, message_id={message_id}")
 
         try:
-            # Явно используем AI Client Service для отправки запроса к AI
             logger.info(f"Отправка запроса к AI через gRPC: {message_text[:50]}...")
             ai_response = await self.ai_client.send_message(message_text)
             logger.info(f"Получен ответ от AI для сообщения {message_id}: {ai_response[:50]}...")
@@ -70,13 +69,10 @@ class AIWorker:
         logger.info("Запуск AI воркера...")
         
         try:
-            # Подключаемся к RabbitMQ
             await self.rabbitmq_service.connect()
             
-            # Запускаем обработчик очереди
             await self.rabbitmq_service.start_ai_worker(self.process_message)
             
-            # Ожидаем завершения (это будет выполняться до остановки)
             while self.running:
                 await asyncio.sleep(1)
                 

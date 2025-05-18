@@ -18,14 +18,6 @@ class JWTSettings(BaseSettings):
     )
 
 
-class RedisSettings(BaseSettings):
-    url: str = "redis://redis:6379/0"
-    
-    model_config = SettingsConfigDict(
-        env_prefix="redis_", env_file_encoding="utf-8", extra="ignore"
-    )
-
-
 class RabbitMQSettings(BaseSettings):
     url: str = "amqp://guest:guest@rabbitmq:5672/"
     
@@ -34,11 +26,42 @@ class RabbitMQSettings(BaseSettings):
     )
 
 
+class EncryptionSettings(BaseSettings):
+    key: str
+
+    model_config = SettingsConfigDict(
+        env_prefix="encryption_", env_file_encoding="utf-8", extra="ignore"
+    )
+
+
+class S3Settings(BaseSettings):
+    endpoint_url: str
+    access_key: str
+    secret_key: str
+    region: str
+    bucket_name: str
+
+    model_config = SettingsConfigDict(
+        env_prefix="s3_", env_file_encoding="utf-8", extra="ignore"
+    )
+
+
+class UserGrpcSettings(BaseSettings):
+    host: str
+    port: int
+
+    model_config = SettingsConfigDict(
+        env_prefix="user_grpc_", env_file_encoding="utf-8", extra="ignore"
+    )
+
+
 @dataclass
 class Settings:
     jwt_settings: JWTSettings = field(default_factory=JWTSettings)
-    redis_settings: RedisSettings = field(default_factory=RedisSettings)
     rabbitmq_settings: RabbitMQSettings = field(default_factory=RabbitMQSettings)
+    encryption_settings: EncryptionSettings = field(default_factory=EncryptionSettings)
+    s3_settings: S3Settings = field(default_factory=S3Settings)
+    user_service: UserGrpcSettings = field(default_factory=UserGrpcSettings)
 
 
 settings = Settings()

@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, Any, Optional
+from typing import Any
 
 from services.ai_client_service import AIClientService
 from repositories.message_repository import MessageRepository
@@ -19,7 +19,7 @@ class AIService:
         self.rabbitmq_service = rabbitmq_service
         self.ai_client = AIClientService()
         
-    async def process_ai_request(self, data: Dict[str, Any]):
+    async def process_ai_request(self, data: dict[str, Any]):
         """
         Обработка запроса к AI
         

@@ -12,19 +12,15 @@ from websockets_server.workers.ai_worker import AIWorker
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Инициализация БД
     await global_init()
     
-    # Создаем и запускаем AI воркер
     ai_worker = AIWorker()
     worker_task = asyncio.create_task(ai_worker.start())
     
     yield
     
-    # Останавливаем AI воркер
     await ai_worker.stop()
     
-    # Ждем завершения задачи
     try:
         await worker_task
     except asyncio.CancelledError:
@@ -45,4 +41,4 @@ app.add_middleware(
 app.include_router(router, prefix="/api/v1/chat")
 
 # Подключаем WebSocket роутер
-app.include_router(websocket_router)
+app.include_router(websocket_router, prefix="/api/v1", tags=["WebSockets"])

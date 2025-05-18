@@ -1,6 +1,5 @@
-from . import ai, lawyer
+from . import ai
 
 __all__ = [
     "ai",
-    "lawyer"
 ]

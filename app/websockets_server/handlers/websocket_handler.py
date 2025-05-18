@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 from fastapi import WebSocket, WebSocketDisconnect, Depends, status
-from typing import Dict, Any, Optional
+from typing import Any
 
 from api.auth.auth_handler import decode_jwt
 from repositories.message_repository import MessageRepository
@@ -20,12 +20,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
-# Создаем глобальные экземпляры сервисов
 connection_manager = ConnectionManager()
 rabbitmq_service = RabbitMQService()
 
 
-async def handle_ai_response(data: Dict[str, Any]):
+async def handle_ai_response(data: dict[str, Any]):
     """
     Обработка ответа от AI
     
@@ -35,14 +34,12 @@ async def handle_ai_response(data: Dict[str, Any]):
     message_id = data.get("message_id")
     content = data.get("content")
     
-    # Создаем сообщение с ответом от AI
     response = AIResponseMessage(
         user_id=user_id,
         message_id=message_id,
         content=content
     )
     
-    # Отправляем ответ клиенту
     await connection_manager.send_message(response, user_id)
 
 
@@ -75,6 +72,9 @@ async def websocket_endpoint(
 
     # Подключаемся к RabbitMQ, если еще не подключены
     await rabbitmq_service.connect()
+    
+    # Переменная для хранения задачи подписки
+    subscription_task = None
 
     try:
         # Отправляем подтверждение подключения
@@ -85,42 +85,38 @@ async def websocket_endpoint(
         await websocket.send_json(status_message.dict())
 
         # Запускаем слушателя ответов от AI
-        def ai_response_callback(data):
-            asyncio.create_task(handle_ai_response(data))
+        async def response_callback(data):
+            await handle_ai_response(data)
+        
+        # Используем асинхронную задачу для прослушивания ответов
+        subscription_task = asyncio.create_task(
+            rabbitmq_service.listen_for_responses(user_id, response_callback)
+        )
 
-        # Используем функцию listen_for_responses для получения ответов
-        await rabbitmq_service.listen_for_responses(user_id, ai_response_callback)
-
-        # Обрабатываем входящие сообщения
         while True:
             try:
-                # Получаем данные от клиента
                 data = await websocket.receive_json()
                 logger.info(f"Получены данные от клиента: {data}")
 
-                # Пытаемся распарсить сообщение
                 user_message = UserMessage(**data)
 
-                # Проверяем тип сообщения
                 if user_message.type == "user_message":
                     if not user_message.content:
                         continue
 
-                    # Сохраняем сообщение в базе данных
                     stored_message = await message_repo.create_user_ai_message(
                         user_id=user_id,
                         content=user_message.content
                     )
                     message_id = str(stored_message.id)
 
-                    # Отправляем подтверждение о получении сообщения
                     confirmation = MessageReceivedConfirmation(
                         message_id=message_id,
                         status="processing"
                     )
                     await websocket.send_json(confirmation.dict())
 
-                    # Отправляем запрос в RabbitMQ для обработки AI
+                    # Отправляем запрос через RabbitMQ
                     await rabbitmq_service.send_ai_request(
                         user_id=user_id,
                         message=user_message.content,
@@ -128,7 +124,6 @@ async def websocket_endpoint(
                     )
 
             except WebSocketDisconnect:
-                # Явный обработчик WebSocketDisconnect для корректного завершения
                 logger.info(f"WebSocket отключен для пользователя {user_id}")
                 break
 
@@ -138,7 +133,6 @@ async def websocket_endpoint(
                 try:
                     await websocket.send_json(error_message.dict())
                 except:
-                    # Если соединение уже закрыто, прерываем цикл
                     logger.error("Не удалось отправить сообщение об ошибке - соединение закрыто")
                     break
 
@@ -150,7 +144,6 @@ async def websocket_endpoint(
                     error_message = ErrorMessage(message="Внутренняя ошибка сервера")
                     await websocket.send_json(error_message.dict())
                 except:
-                    # Если соединение уже закрыто, прерываем цикл
                     logger.error("Не удалось отправить сообщение об ошибке - соединение закрыто")
                     break
 
@@ -161,6 +154,11 @@ async def websocket_endpoint(
         import traceback
         logger.error(traceback.format_exc())
     finally:
-        # Отключаем соединение
+        if subscription_task and not subscription_task.done():
+            subscription_task.cancel()
+            try:
+                await subscription_task
+            except asyncio.CancelledError:
+                pass
         connection_manager.disconnect(websocket, user_id)
         logger.info(f"Соединение закрыто для пользователя {user_id}")

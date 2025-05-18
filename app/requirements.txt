@@ -9,5 +9,6 @@ httpx>=0.25.0
 websockets>=12.0.0
 redis>=5.0.0
 aio-pika>=9.3.0
-git+https://github.com/Lawly-code/protos.git@0.1.4#egg=protos
-git+https://github.com/Lawly-code/database.git@0.2.14#egg=lawly-db
+aioboto3==14.3.0
+git+https://github.com/Lawly-code/protos.git@0.1.11#egg=protos
+git+https://github.com/Lawly-code/database.git@0.2.27#egg=lawly-db

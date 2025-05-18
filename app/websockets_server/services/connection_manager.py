@@ -1,5 +1,4 @@
 import logging
-from typing import Dict, List, Optional
 from fastapi import WebSocket
 
 from websockets_server.dto import WebSocketBaseMessage
@@ -13,8 +12,7 @@ class ConnectionManager:
     """
 
     def __init__(self):
-        # Активные соединения в формате {user_id: [connection1, connection2, ...]}
-        self.active_connections: Dict[int, List[WebSocket]] = {}
+        self.active_connections: dict[int, list[WebSocket]] = {}
 
     async def connect(self, websocket: WebSocket, user_id: int):
         """
@@ -55,18 +53,16 @@ class ConnectionManager:
             disconnected = []
             for connection in self.active_connections[user_id]:
                 try:
-                    await connection.send_json(message.dict())
+                    await connection.send_json(message.model_dump())
                     logger.info(f"Сообщение типа {message.type} отправлено пользователю {user_id}")
                 except Exception as e:
                     logger.error(f"Ошибка отправки сообщения: {str(e)}")
                     disconnected.append(connection)
             
-            # Удаляем разорванные соединения
             for connection in disconnected:
                 if connection in self.active_connections[user_id]:
                     self.active_connections[user_id].remove(connection)
             
-            # Если это было последнее соединение пользователя, удаляем запись
             if user_id in self.active_connections and not self.active_connections[user_id]:
                 del self.active_connections[user_id]
                 

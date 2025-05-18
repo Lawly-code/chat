@@ -9,10 +9,9 @@ class MessageRequestDTO(BaseModel):
 
 
 class MessageResponseDTO(BaseModel):
-    id: str = Field(..., example="msg-12345")
+    id: int = Field(..., example=1234)
     sender_type: str = Field(..., example="user", description="Тип отправителя: user, ai, lawyer")
-    sender_id: Optional[str] = Field(None, example="user-123", description="ID отправителя (для юристов)")
-    sender_name: Optional[str] = Field(None, example="Иванов И.И.", description="Имя отправителя (для юристов)")
+    sender_id: Optional[int] = Field(None, example=123, description="ID отправителя (для юристов)")
     content: str = Field(..., example="Как мне составить претензию на возврат товара?")
     created_at: datetime = Field(..., example="2023-01-15T12:00:00Z")
     status: str = Field(..., example="delivered", description="Статус сообщения: sent, delivered, read")

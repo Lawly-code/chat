@@ -7,74 +7,62 @@ from typing import Dict, Any
 from api.auth.auth_handler import decode_jwt
 from repositories.message_repository import MessageRepository
 from services.ai_client_service import AIClientService
-from services.message_queue_service import MessageQueueService
+from websockets_server.services.rabbitmq_service import RabbitMQService
 from .connection_manager import ConnectionManager
 from lawly_db.db_models.db_session import get_session, create_session
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
-# Создаем экземпляр менеджера соединений
 connection_manager = ConnectionManager()
-# Создаем экземпляр сервиса очереди сообщений
-message_queue = MessageQueueService()
-# Создаем экземпляр AI клиента
+rabbitmq_service = RabbitMQService()
 ai_client = AIClientService()
+
+
+async def handle_ai_response(data: Dict[str, Any]):
+    """
+    Обработка ответа от AI
+    
+    :param data: Данные ответа от AI
+    """
+    user_id = data.get("user_id")
+    
+    # Отправляем сообщение пользователю через WebSocket
+    await connection_manager.send_message(data, user_id)
+    logger.info(f"Сообщение отправлено клиенту, user_id: {user_id}")
 
 
 async def subscribe_to_responses(user_id: int):
     """
-    Подписка на ответы для конкретного пользователя - использует опрос Redis вместо PubSub
+    Подписка на ответы для конкретного пользователя через RabbitMQ
     
     :param user_id: ID пользователя
     """
     logger.info(f"Запуск подписки на ответы для пользователя {user_id}")
     
     try:
-        # Подключаемся к Redis
-        await message_queue.connect()
-        logger.info(f"Соединение с Redis установлено для пользователя {user_id}")
+        # Подключаемся к RabbitMQ
+        await rabbitmq_service.connect()
+        logger.info(f"Соединение с RabbitMQ установлено для пользователя {user_id}")
         
-        # Ключ для хранения ответов для пользователя
-        response_key = f"user_responses:{user_id}"
+        # Функция обратного вызова для обработки ответов
+        async def response_callback(data):
+            await handle_ai_response(data)
         
+        # Запускаем прослушивание ответов
+        await rabbitmq_service.listen_for_responses(user_id, response_callback)
+        logger.info(f"Подписка на ответы запущена для пользователя {user_id}")
+        
+        # Бесконечный цикл, чтобы задача не завершалась
         try:
             while True:
-                # Проверяем, есть ли новые ответы
-                if await message_queue.redis.exists(response_key):
-                    # Получаем все ответы из списка
-                    responses = await message_queue.redis.lrange(response_key, 0, -1)
-                    
-                    if responses:
-                        # Удаляем полученные ответы из списка
-                        await message_queue.redis.ltrim(response_key, len(responses), -1)
-                        
-                        # Обрабатываем каждый ответ
-                        for response_data_bytes in responses:
-                            try:
-                                # Декодируем и парсим JSON
-                                response_data = json.loads(response_data_bytes.decode('utf-8'))
-                                logger.info(f"Получены данные ответа: {response_data}")
-                                
-                                # Отправляем ответ пользователю
-                                await connection_manager.send_message(response_data, user_id)
-                                logger.info(f"Сообщение отправлено клиенту, user_id: {user_id}")
-                            except Exception as e:
-                                logger.error(f"Ошибка обработки ответа: {str(e)}")
-                
-                # Пауза между проверками
-                await asyncio.sleep(0.5)
-                
+                await asyncio.sleep(1)
         except asyncio.CancelledError:
             logger.warning(f"Подписка на ответы для пользователя {user_id} отменена")
             raise
-        except Exception as e:
-            logger.error(f"Ошибка при обработке ответов: {str(e)}")
-            import traceback
-            logger.error(traceback.format_exc())
-            
+        
     except Exception as e:
-        logger.error(f"Ошибка при подключении к Redis: {str(e)}")
+        logger.error(f"Ошибка при подписке на ответы: {str(e)}")
         import traceback
         logger.error(traceback.format_exc())
 
@@ -96,17 +84,9 @@ async def process_message_from_queue(message_item: Dict[str, Any]):
         ai_response = await ai_client.send_message(message_text)
         logger.info(f"Получен ответ от AI для сообщения {message_id}")
         
-        # Формируем сообщение с ответом
-        response_data = {
-            "type": "ai_response",
-            "message_id": message_id,
-            "user_id": user_id,
-            "content": ai_response
-        }
-        
-        # Публикуем ответ для пользователя
-        await message_queue.publish_response(user_id, response_data)
-        logger.info(f"Ответ опубликован для пользователя {user_id}")
+        # Отправляем ответ через RabbitMQ
+        await rabbitmq_service.send_ai_response(user_id, message_id, ai_response)
+        logger.info(f"Ответ отправлен через RabbitMQ для пользователя {user_id}")
         
         # Сохраняем ответ в базе данных
         try:
@@ -127,12 +107,12 @@ async def process_message_from_queue(message_item: Dict[str, Any]):
         logger.error(traceback.format_exc())
 
 
-# Запускаем обработчик очереди
+# Запускаем обработчик очереди для воркера (используется только в воркере)
 async def start_queue_processor():
     """
     Запуск обработчика очереди сообщений
     """
-    await message_queue.start_processing(process_message_from_queue)
+    await rabbitmq_service.start_ai_worker(process_message_from_queue)
 
 
 # Обработчик WebSocket соединений
@@ -189,9 +169,7 @@ async def websocket_endpoint(
                 logger.error(f"Ошибка декодирования JSON: {str(e)}")
                 continue
             
-            # Проверяем, что это сообщение для AI
             if data.get("type") == "user_message":
-                # Получаем текст сообщения
                 message_text = data.get("content", "")
                 if not message_text:
                     logger.warning("Получено пустое сообщение, пропускаем")
@@ -218,13 +196,13 @@ async def websocket_endpoint(
                     })
                     logger.info(f"Подтверждение отправлено, message_id: {message_id}")
                     
-                    # Добавляем сообщение в очередь
-                    await message_queue.add_message_to_queue(
+                    # Отправляем запрос в RabbitMQ
+                    await rabbitmq_service.send_ai_request(
                         user_id=user_id,
                         message=message_text,
                         message_id=message_id
                     )
-                    logger.info(f"Сообщение добавлено в очередь, message_id: {message_id}")
+                    logger.info(f"Сообщение отправлено в RabbitMQ, message_id: {message_id}")
                 
                 except Exception as e:
                     logger.error(f"Ошибка при обработке сообщения: {str(e)}")
@@ -249,13 +227,11 @@ async def websocket_endpoint(
         import traceback
         logger.error(traceback.format_exc())
     finally:
-        # Отменяем задачу подписки при любом исходе
         if subscription_task and not subscription_task.done():
             subscription_task.cancel()
             try:
                 await subscription_task
             except asyncio.CancelledError:
                 pass
-        # Отключаем соединение
         connection_manager.disconnect(websocket, user_id)
         logger.info(f"Соединение закрыто для пользователя {user_id}")

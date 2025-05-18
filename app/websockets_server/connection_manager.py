@@ -1,5 +1,4 @@
 from fastapi import WebSocket
-from typing import Dict, List, Optional
 import logging
 
 logger = logging.getLogger(__name__)
@@ -12,7 +11,7 @@ class ConnectionManager:
 
     def __init__(self):
         # Активные соединения в формате {user_id: [connection1, connection2, ...]}
-        self.active_connections: Dict[int, List[WebSocket]] = {}
+        self.active_connections: dict[int, list[WebSocket]] = {}
 
     async def connect(self, websocket: WebSocket, user_id: int):
         """

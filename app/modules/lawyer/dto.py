@@ -1,25 +1,58 @@
+from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import List, Optional
-
-from pydantic import BaseModel, Field, HttpUrl
+from enum import Enum
 
 
+# Enum для статуса заявки юриста
+class LawyerRequestStatus(str, Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+
+
+# Request models
+class LawyerRequestFilterDTO(BaseModel):
+    status: LawyerRequestStatus = Field(..., example="pending", description="Статус заявки для фильтрации")
+
+
+class LawyerRequestUpdateDTO(BaseModel):
+    request_id: int = Field(..., example=123, description="ID заявки для обновления")
+    status: LawyerRequestStatus = Field(..., example="processing", description="Новый статус заявки")
+    document_bytes: list[int] | None = Field(None, description="Документ в байтах (необходим для статуса 'completed')")
+    description: str | None = Field(None, example="Работа выполнена", description="Описание выполненной работы (необходимо для статуса 'completed')")
+
+
+class LawyerRequestCreateDTO(BaseModel):
+    description: str = Field(..., example="Нужно проверить договор купли-продажи", description="Описание заявки для юриста")
+    document_bytes: list[int] | None = Field(None, description="Документ в байтах (опционально)")
+
+
+# Response models
 class LawyerRequestDTO(BaseModel):
-    message: str = Field(..., example="Необходима консультация по вопросу возврата товара.")
-    document_url: Optional[HttpUrl] = Field(None, example="https://storage.example.com/documents/doc-12345.pdf", description="Ссылка на документ в S3, если обращение связано с проверкой документа")
+    id: int = Field(..., example=123, description="Уникальный ID заявки")
+    title: str = Field(..., example="Заявка №123: Проверка документов", description="Заголовок заявки")
+    description: str = Field(..., example="Нужно проверить комплект документов до 20 мая", description="Описание заявки")
+    status: LawyerRequestStatus = Field(..., example="pending", description="Текущий статус заявки")
+    file_url: str | None = Field(None, example="https://example.com/sample1.pdf", description="URL файла документа")
+    created_at: datetime = Field(..., example="2025-05-10T12:00:00Z", description="Дата создания заявки")
+    updated_at: datetime = Field(..., example="2025-05-10T12:00:00Z", description="Дата последнего обновления заявки")
 
 
-class MessageResponseDTO(BaseModel):
-    id: str = Field(..., example="msg-12345")
-    sender_type: str = Field(..., example="user", description="Тип отправителя: user, ai, lawyer")
-    sender_id: Optional[str] = Field(None, example="user-123", description="ID отправителя (для юристов)")
-    sender_name: Optional[str] = Field(None, example="Иванов И.И.", description="Имя отправителя (для юристов)")
-    content: str = Field(..., example="Как мне составить претензию на возврат товара?")
-    created_at: datetime = Field(..., example="2023-01-15T12:00:00Z")
-    status: str = Field(..., example="delivered", description="Статус сообщения: sent, delivered, read")
+class LawyerRequestsDTO(BaseModel):
+    total: int = Field(..., example=10, description="Общее количество заявок")
+    requests: list[LawyerRequestDTO] = Field(..., description="Список заявок юриста")
 
 
-class MessagesResponseDTO(BaseModel):
-    total: int = Field(..., example=45, description="Общее количество сообщений в выбранном диапазоне")
-    has_more: bool = Field(..., example=True, description="Флаг наличия дополнительных сообщений")
-    messages: List[MessageResponseDTO] = Field(..., description="Список сообщений")
+class LawyerRequestCreateResponseDTO(BaseModel):
+    id: int = Field(..., example=123, description="ID созданной заявки")
+    status: LawyerRequestStatus = Field(..., example="pending", description="Статус заявки")
+    created_at: datetime = Field(..., example="2025-05-10T12:00:00Z", description="Дата создания заявки")
+
+
+# Request model для получения документа
+class DocumentRetrievalByRequestIdDTO(BaseModel):
+    lawyer_request_id: int = Field(..., example=123, description="ID заявки юриста")
+
+
+class DocumentRetrievalByMessageIdDTO(BaseModel):
+    message_id: int = Field(..., example=456, description="ID сообщения")

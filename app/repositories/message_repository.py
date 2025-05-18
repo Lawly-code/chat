@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional, Sequence
 
 from lawly_db.db_models import Message
 from lawly_db.db_models.enum_models import ChatTypeEnum, MessageSenderTypeEnum, MessageStatusEnum
@@ -13,14 +12,25 @@ class MessageRepository(BaseRepository):
     def __init__(self, session: AsyncSession):
         super().__init__(session)
 
+    async def get_message_by_id(self, message_id: int) -> Message | None:
+        """
+        Получение сообщения по ID
+        
+        :param message_id: ID сообщения
+        :return: Объект сообщения или None, если не найден
+        """
+        query = select(Message).where(Message.id == message_id)
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
+
     async def get_ai_messages(
         self, 
         user_id: int, 
-        from_date: Optional[datetime] = None, 
-        to_date: Optional[datetime] = None,
+        from_date: datetime | None = None, 
+        to_date: datetime | None = None,
         limit: int = 50,
         offset: int = 0
-    ) -> tuple[Sequence[Message], int]:
+    ) -> tuple[list[Message], int]:
         """
         Получение сообщений из чата с AI
         
@@ -36,33 +46,29 @@ class MessageRepository(BaseRepository):
             Message.chat_type == ChatTypeEnum.AI
         )
         
-        # Добавляем фильтры по дате, если они указаны
         if from_date:
             query = query.where(Message.created_at >= from_date)
         if to_date:
             query = query.where(Message.created_at <= to_date)
             
-        # Выполняем запрос для получения общего количества
         count_query = select(func.count()).select_from(query.subquery())
         total = await self.session.scalar(count_query)
         
-        # Добавляем сортировку, лимит и смещение
         query = query.order_by(Message.created_at.desc()).limit(limit).offset(offset)
         
-        # Выполняем запрос для получения сообщений
         result = await self.session.execute(query)
         messages = result.scalars().all()
         
-        return messages, total
+        return list(messages), total
     
     async def get_lawyer_messages(
         self, 
         user_id: int, 
-        from_date: Optional[datetime] = None, 
-        to_date: Optional[datetime] = None,
+        from_date: datetime | None = None, 
+        to_date: datetime | None = None,
         limit: int = 50,
         offset: int = 0
-    ) -> tuple[Sequence[Message], int]:
+    ) -> tuple[list[Message], int]:
         """
         Получение сообщений из чата с юристом
         
@@ -78,24 +84,20 @@ class MessageRepository(BaseRepository):
             Message.chat_type == ChatTypeEnum.LAWYER
         )
         
-        # Добавляем фильтры по дате, если они указаны
         if from_date:
             query = query.where(Message.created_at >= from_date)
         if to_date:
             query = query.where(Message.created_at <= to_date)
             
-        # Выполняем запрос для получения общего количества
         count_query = select(func.count()).select_from(query.subquery())
         total = await self.session.scalar(count_query)
         
-        # Добавляем сортировку, лимит и смещение
         query = query.order_by(Message.created_at.desc()).limit(limit).offset(offset)
         
-        # Выполняем запрос для получения сообщений
         result = await self.session.execute(query)
         messages = result.scalars().all()
         
-        return messages, total
+        return list(messages), total
     
     async def create_user_ai_message(self, user_id: int, content: str) -> Message:
         """
@@ -135,18 +137,20 @@ class MessageRepository(BaseRepository):
         await self.save(message, self.session)
         return message
     
-    async def create_user_lawyer_message(self, user_id: int, content: str) -> Message:
+    async def create_user_lawyer_message(self, user_id: int, content: str, document_url: str) -> Message:
         """
-        Создание сообщения пользователя в чате с юристом
+        Создание сообщения юриста для пользователя
         
         :param user_id: ID пользователя
         :param content: Текст сообщения
+        :param document_url: URL документа
         :return: Созданное сообщение
         """
         message = Message(
             user_id=user_id,
             chat_type=ChatTypeEnum.LAWYER,
             sender_type=MessageSenderTypeEnum.USER,
+            document_url=document_url,
             text=content,
             status=MessageStatusEnum.SENT
         )

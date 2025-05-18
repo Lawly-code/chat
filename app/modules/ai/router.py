@@ -40,10 +40,9 @@ async def get_messages(
     for msg in messages:
         message_dtos.append(
             MessageResponseDTO(
-                id=f"msg-{msg.id}",
+                id=msg.id,
                 sender_type=msg.sender_type.value,
-                sender_id=f"sender-{msg.sender_id}" if msg.sender_id else None,
-                sender_name=None,
+                sender_id=msg.sender_id if msg.sender_id else None,
                 content=msg.text,
                 created_at=msg.created_at,
                 status=msg.status.value
@@ -55,26 +54,3 @@ async def get_messages(
         has_more=total > offset + limit,
         messages=message_dtos
     )
-
-
-@router.post(
-    "/messages",
-    summary="Отправка сообщения AI-помощнику",
-    description=send_ai_message_description,
-    responses=send_ai_message_response,
-    response_class=Response,
-    status_code=status.HTTP_202_ACCEPTED
-)
-async def send_message(
-    message_request: MessageRequestDTO,
-    token: JWTHeader = Depends(JWTBearer()),
-    chat_service: ChatService = Depends()
-):
-    resp = await chat_service.send_ai_message(
-        user_id=token.user_id,
-        content=message_request.content
-    )
-
-    if resp:
-        return Response(status_code=status.HTTP_202_ACCEPTED)
-    return Response(status_code=status.HTTP_400_BAD_REQUEST)

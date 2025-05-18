@@ -1,7 +1,8 @@
 import json
 import logging
 import aio_pika
-from typing import Callable, Dict, Any, Optional
+import asyncio
+from typing import Callable, Any, Optional, Dict
 from aio_pika import Connection, Channel, Queue, Message, ExchangeType
 
 from config import settings
@@ -20,6 +21,7 @@ class RabbitMQService:
         self.ai_request_queue: Optional[Queue] = None
         self.response_exchange = None
         self.callback_queue: Optional[Queue] = None
+        self.processing = False
         
         # Очереди и обмены
         self.ai_request_queue_name = "ai_request_queue"
@@ -67,6 +69,18 @@ class RabbitMQService:
             await self.connection.close()
             logger.info("Соединение с RabbitMQ закрыто")
             
+    async def add_message_to_queue(self, user_id: int, message: str, message_id: str) -> bool:
+        """
+        Добавление сообщения в очередь AI запросов
+        
+        :param user_id: ID пользователя
+        :param message: Текст сообщения
+        :param message_id: ID сообщения
+        :return: Успешность добавления
+        """
+        # Используем send_ai_request для добавления в очередь
+        return await self.send_ai_request(user_id, message, message_id)
+            
     async def send_ai_request(self, user_id: int, message: str, message_id: str) -> bool:
         """
         Отправка запроса к AI через RabbitMQ
@@ -109,7 +123,7 @@ class RabbitMQService:
             logger.error(f"Ошибка отправки запроса к AI: {str(e)}")
             return False
             
-    async def listen_for_responses(self, user_id: int, callback: Callable[[Dict[str, Any]], None]):
+    async def listen_for_responses(self, user_id: int, callback: Callable[[dict[str, Any]], Any]):
         """
         Прослушивание ответов от AI для определенного пользователя
         
@@ -126,9 +140,9 @@ class RabbitMQService:
             user_queue = await self.channel.declare_queue(
                 user_queue_name,
                 durable=True,
-                auto_delete=True  # Удаляется, когда нет подписчиков
+                auto_delete=True
             )
-            
+
             # Привязываем очередь к обмену с ключом маршрутизации (routing key) user_id
             await user_queue.bind(
                 self.response_exchange,
@@ -144,7 +158,7 @@ class RabbitMQService:
                         logger.info(f"Получен ответ от AI: {data}")
                         
                         # Вызываем callback функцию с данными
-                        callback(data)
+                        await callback(data)
                         
                     except json.JSONDecodeError:
                         logger.error(f"Ошибка декодирования JSON: {message.body}")
@@ -155,10 +169,31 @@ class RabbitMQService:
             await user_queue.consume(process_message)
             logger.info(f"Начато прослушивание ответов для пользователя {user_id}")
             
+            # Продолжаем бесконечно, пока задача не будет отменена
+            while True:
+                await asyncio.sleep(1)
+            
+        except asyncio.CancelledError:
+            logger.info(f"Прослушивание ответов для пользователя {user_id} отменено")
+            raise
         except Exception as e:
             logger.error(f"Ошибка при настройке прослушивания ответов: {str(e)}")
             
-    async def start_ai_worker(self, process_message: Callable[[Dict[str, Any]], None]):
+    async def publish_response(self, user_id: int, message: Dict[str, Any]):
+        """
+        Публикация ответа для пользователя через RabbitMQ
+        
+        :param user_id: ID пользователя
+        :param message: Сообщение с ответом
+        """
+        # Извлекаем данные из сообщения
+        message_id = message.get("message_id", "")
+        content = message.get("content", "")
+        
+        # Отправляем ответ через RabbitMQ
+        await self.send_ai_response(user_id, message_id, content)
+            
+    async def start_ai_worker(self, process_message: Callable[[dict[str, Any]], Any]):
         """
         Запуск обработчика запросов к AI
         
@@ -169,6 +204,8 @@ class RabbitMQService:
             return
             
         try:
+            self.processing = True
+            
             # Функция для обработки сообщений из очереди запросов
             async def on_message(message: aio_pika.IncomingMessage):
                 async with message.process():
@@ -189,8 +226,25 @@ class RabbitMQService:
             await self.ai_request_queue.consume(on_message)
             logger.info(f"AI Worker запущен")
             
+            # Продолжаем, пока не будет остановлено
+            try:
+                while self.processing:
+                    await asyncio.sleep(1)
+            except asyncio.CancelledError:
+                logger.info("AI Worker остановлен принудительно")
+                raise
+                
         except Exception as e:
             logger.error(f"Ошибка при запуске AI Worker: {str(e)}")
+        finally:
+            self.processing = False
+            
+    async def stop_processing(self):
+        """
+        Остановка обработки сообщений
+        """
+        self.processing = False
+        logger.info("Запрошена остановка обработки очереди сообщений")
             
     async def send_ai_response(self, user_id: int, message_id: str, content: str) -> bool:
         """
@@ -210,7 +264,8 @@ class RabbitMQService:
             data = {
                 "user_id": user_id,
                 "message_id": message_id,
-                "content": content
+                "content": content,
+                "type": "ai_response"  # Добавляем тип сообщения для совместимости
             }
             
             # Создаем сообщение
@@ -232,3 +287,12 @@ class RabbitMQService:
         except Exception as e:
             logger.error(f"Ошибка отправки ответа от AI: {str(e)}")
             return False
+            
+    # Метод для совместимости с предыдущей версией
+    async def start_processing(self, process_message: Callable):
+        """
+        Запуск обработки сообщений из очереди - обертка для start_ai_worker
+        
+        :param process_message: Функция обработки сообщения
+        """
+        await self.start_ai_worker(process_message)

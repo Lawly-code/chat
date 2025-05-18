@@ -4,12 +4,13 @@ WORKDIR /app
 RUN apk update
 RUN apk add git
 
-# Установка зависимостей
 COPY app/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копирование исходного кода
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 COPY app/ .
 
-# Запуск сервиса
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
