@@ -31,7 +31,7 @@ app = FastAPI(title="Lawly Chat API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://lawyer.lawly.ru"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
