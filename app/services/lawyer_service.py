@@ -29,7 +29,7 @@ class LawyerService:
         self.s3_service = S3Service()
 
     async def create_lawyer_request_from_user(
-            self, user_id: int, description: str, document_bytes: list[int] | None = None
+        self, user_id: int, description: str, document_bytes: list[int] | None = None
     ) -> LawyerRequest:
         """
         Создание заявки к юристу от пользователя
@@ -93,7 +93,7 @@ class LawyerService:
         return lawyer
 
     async def get_lawyer_requests_by_status(
-            self, user_id: int, status: LawyerRequestStatusEnum
+        self, user_id: int, status: LawyerRequestStatusEnum
     ) -> tuple[list[LawyerRequest], int]:
         """
         Получение заявок юриста по статусу
@@ -110,12 +110,12 @@ class LawyerService:
         )
 
     async def update_lawyer_request(
-            self,
-            user_id: int,
-            request_id: int,
-            status: LawyerRequestStatusEnum,
-            document_bytes: list[int] | None = None,
-            description: str | None = None,
+        self,
+        user_id: int,
+        request_id: int,
+        status: LawyerRequestStatusEnum,
+        document_bytes: list[int] | None = None,
+        description: str | None = None,
     ) -> LawyerRequest:
         """
         Обновление заявки юриста
@@ -136,8 +136,8 @@ class LawyerService:
             raise NotFoundError(f"Заявка с ID {request_id} не найдена")
 
         if (
-                request.lawyer_id != lawyer.id
-                and status == LawyerRequestStatusEnum.COMPLETED
+            request.lawyer_id != lawyer.id
+            and status == LawyerRequestStatusEnum.COMPLETED
         ):
             raise AccessDeniedError("Заявка не назначена этому юристу")
 
@@ -152,23 +152,24 @@ class LawyerService:
             await self.message_repo.create_user_lawyer_message(
                 user_id=request.user_id, content=description, document_url=document_url
             )
-            client = NotificationServiceClient(host="notification_grpc_service", port=50051)
-            context = {
-                "lawyer_request_id": request.id,
-                "note": description or ""
-            }
+            client = NotificationServiceClient(
+                host="notification_grpc_service", port=50051
+            )
+            context = {"lawyer_request_id": request.id, "note": description or ""}
             message = notification("lawyer_checked", context=context)
-            await client.send_push_from_users(request_data=PushRequestDTO(user_ids=[request.user_id], message=message))
+            await client.send_push_from_users(
+                request_data=PushRequestDTO(user_ids=[request.user_id], message=message)
+            )
 
         return await self.lawyer_request_repo.update_lawyer_request_status(
             request_id=request_id, status=status, lawyer_id=lawyer.id, note=description
         )
 
     async def get_document(
-            self,
-            user_id: int,
-            lawyer_request_id: int | None = None,
-            message_id: int | None = None,
+        self,
+        user_id: int,
+        lawyer_request_id: int | None = None,
+        message_id: int | None = None,
     ) -> bytes:
         """
         Получение документа по ID заявки юриста или ID сообщения
@@ -198,8 +199,8 @@ class LawyerService:
             lawyer = await self.get_lawyer_by_user_id(user_id)
 
             if (
-                    request.lawyer_id != lawyer.id
-                    and request.status == LawyerRequestStatusEnum.PROCESSING
+                request.lawyer_id != lawyer.id
+                and request.status == LawyerRequestStatusEnum.PROCESSING
             ):
                 raise AccessDeniedError("Нет доступа к этой заявке")
 
