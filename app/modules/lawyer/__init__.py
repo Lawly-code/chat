@@ -3,6 +3,7 @@ from .descriptions import (
     update_lawyer_request_description,
     get_document_description,
     create_lawyer_request_description,
+    get_lawyer_responses_description,
 )
 from .dto import (
     LawyerRequestStatus,
@@ -14,6 +15,8 @@ from .dto import (
     DocumentRetrievalByMessageIdDTO,
     LawyerRequestCreateDTO,
     LawyerRequestCreateResponseDTO,
+    LawyerResponsesDTO,
+    LawyerResponseDTO,
 )
 from .response import (
     get_lawyer_requests_response,
@@ -29,11 +32,14 @@ __all__ = [
     "update_lawyer_request_description",
     "get_document_description",
     "create_lawyer_request_description",
+    "get_lawyer_responses_description",
     "LawyerRequestStatus",
     "LawyerRequestFilterDTO",
     "LawyerRequestUpdateDTO",
     "LawyerRequestDTO",
     "LawyerRequestsDTO",
+    "LawyerResponseDTO",
+    "LawyerResponsesDTO",
     "DocumentRetrievalByRequestIdDTO",
     "DocumentRetrievalByMessageIdDTO",
     "LawyerRequestCreateDTO",

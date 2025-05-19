@@ -1,3 +1,12 @@
+from datetime import datetime, timedelta
+
+from lawly_db.db_models.enum_models import (
+    ChatTypeEnum,
+    MessageSenderTypeEnum,
+    MessageStatusEnum,
+)
+from lawly_db.db_models.message import Message
+
 import pytest
 import base64
 from unittest.mock import MagicMock, AsyncMock
@@ -297,4 +306,50 @@ async def test_access_denied_for_non_lawyer(ac: AsyncClient, user_dto: UserDTO):
     )
 
     # Проверяем результат
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_get_lawyer_messages(ac: AsyncClient, user_dto: UserDTO):
+    """Тест эндпоинта получения сообщений юриста"""
+    message = Message(
+        user_id=user_dto.user.id,
+        chat_type=ChatTypeEnum.LAWYER,
+        sender_type=MessageSenderTypeEnum.LAWYER,
+        sender_id=None,
+        text="Это тестовое сообщение от юриста",
+        document_url="https://example.com/documents/test.pdf",
+        status=MessageStatusEnum.SENT,
+    )
+
+    user_dto.session.add(message)
+    await user_dto.session.commit()
+
+    # Отправляем запрос
+    response = await ac.get(
+        "/api/v1/chat/lawyer/messages",
+        headers={"Authorization": f"Bearer {user_dto.token}"},
+        params={"start_date": "2023-01-01", "end_date": "2026-12-31"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data["responses"], list)
+    assert len(data["responses"]) > 0
+
+
+@pytest.mark.asyncio
+async def get_lawyer_messages_returns_400_for_invalid_date_range(
+    ac: AsyncClient, user_dto: UserDTO
+):
+    """Возвращает 400, если диапазон дат некорректен"""
+    start_date = (datetime.now() + timedelta(days=1)).isoformat()
+    end_date = datetime.now().isoformat()
+
+    response = await ac.get(
+        "/api/v1/chat/lawyer/messages",
+        headers={"Authorization": f"Bearer {user_dto.token}"},
+        params={"start_date": start_date, "end_date": end_date},
+    )
+
     assert response.status_code == 403

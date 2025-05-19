@@ -1,3 +1,5 @@
+import datetime
+
 from fastapi import Depends
 from lawly_db.db_models import LawyerRequest, Lawyer
 from lawly_db.db_models.db_session import get_session
@@ -8,6 +10,11 @@ from protos.notification_service.dto import PushRequestDTO
 from protos.user_service.client import UserServiceClient
 
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from modules.lawyer import LawyerResponsesDTO
 
 from services.gost_cipher_service import GostCipherService
 from services.s3_service import S3Service
@@ -27,6 +34,36 @@ class LawyerService:
         self.lawyer_repo = LawyerRepository(session)
         self.gost_cipher = GostCipherService()
         self.s3_service = S3Service()
+
+    async def get_lawyer_responses(
+        self,
+        user_id: int,
+        from_date: datetime.datetime | None = None,
+        to_date: datetime.datetime | None = None,
+    ) -> "LawyerResponsesDTO":
+        """
+        Получение ответов юриста по ID пользователя и временному диапазону
+
+        :param user_id: ID пользователя
+        :param from_date: Дата начала диапазона
+        :param to_date: Дата конца диапазона
+        :return: DTO с ответами юриста
+        """
+        from modules.lawyer import LawyerResponsesDTO, LawyerResponseDTO
+
+        if await self.lawyer_repo.get_lawyer_by_user_id(user_id):
+            raise AccessDeniedError("Пользователь является юристом")
+
+        messages, total = await self.message_repo.get_lawyer_messages(
+            user_id=user_id, from_date=from_date, to_date=to_date
+        )
+        return LawyerResponsesDTO(
+            responses=[
+                LawyerResponseDTO(message_id=message.id, note=message.text)
+                for message in messages
+            ],
+            total=total,
+        )
 
     async def create_lawyer_request_from_user(
         self, user_id: int, description: str, document_bytes: list[int] | None = None

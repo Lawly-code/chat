@@ -1,11 +1,11 @@
 import asyncio
 from contextlib import asynccontextmanager
 
-from api import router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from lawly_db.db_models.db_session import global_init
 
+from modules import ai, lawyer
 from websockets_server.router import router as websocket_router
 from websockets_server.workers.ai_worker import AIWorker
 
@@ -37,8 +37,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Подключаем REST API роутеры
-app.include_router(router, prefix="/api/v1/chat")
-
 # Подключаем WebSocket роутер
 app.include_router(websocket_router, prefix="/api/v1", tags=["WebSockets"])
+app.include_router(ai.router, prefix="/api/v1/chat/ai")
+app.include_router(lawyer.router, prefix="/api/v1/chat/lawyer")

@@ -10,12 +10,15 @@ from services.errors import (
 )
 
 from services.lawyer_service import LawyerService
+
 from modules.lawyer.descriptions import (
     get_lawyer_requests_description,
     update_lawyer_request_description,
     get_document_description,
     create_lawyer_request_description,
+    get_lawyer_responses_description,
 )
+
 from modules.lawyer.dto import (
     LawyerRequestStatus,
     LawyerRequestDTO,
@@ -23,6 +26,7 @@ from modules.lawyer.dto import (
     LawyerRequestUpdateDTO,
     LawyerRequestCreateDTO,
     LawyerRequestCreateResponseDTO,
+    LawyerResponsesDTO,
 )
 from modules.lawyer.response import (
     get_lawyer_requests_response,
@@ -204,3 +208,37 @@ async def get_document(
         raise HTTPException(status_code=403, detail=str(e))
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get(
+    "/messages",
+    summary="Получение ответов юриста",
+    description=get_lawyer_responses_description,
+    responses=get_lawyer_requests_response,
+    response_model=LawyerResponsesDTO,
+)
+async def get_lawyer_messages(
+    start_date: datetime = Query(..., description="Дата начала периода"),
+    end_date: datetime = Query(..., description="Дата окончания периода"),
+    current_user: JWTHeader = Depends(JWTBearer()),
+    lawyer_service: LawyerService = Depends(),
+):
+    """
+    Получение всех ответов юриста за указанный период времени
+    """
+    try:
+        if start_date > end_date:
+            raise HTTPException(
+                status_code=400,
+                detail="Start date must be earlier than end date",
+            )
+
+        responses = await lawyer_service.get_lawyer_responses(
+            user_id=current_user.user_id,
+            from_date=start_date,
+            to_date=end_date,
+        )
+
+        return responses
+    except AccessDeniedError as e:
+        raise HTTPException(status_code=403, detail=str(e))

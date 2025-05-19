@@ -1,8 +1,18 @@
-from modules.lawyer.dto import LawyerRequestsDTO, LawyerRequestCreateResponseDTO
+from modules.lawyer.dto import (
+    LawyerResponsesDTO,
+    LawyerRequestsDTO,
+    LawyerRequestCreateResponseDTO,
+)
 
 get_lawyer_requests_response = {
     401: {"description": "Неверные учетные данные"},
     200: {"description": "Список заявок юриста", "model": LawyerRequestsDTO},
+    403: {"description": "Доступ запрещен. Пользователь не является юристом."},
+}
+
+get_lawyer_responses_response = {
+    401: {"description": "Неверные учетные данные"},
+    200: {"description": "Список заявок юриста", "model": LawyerResponsesDTO},
     403: {"description": "Доступ запрещен. Пользователь не является юристом."},
     404: {"description": "Заявки не найдены"},
 }

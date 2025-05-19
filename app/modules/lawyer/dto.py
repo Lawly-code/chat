@@ -77,6 +77,20 @@ class LawyerRequestsDTO(BaseModel):
     requests: list[LawyerRequestDTO] = Field(..., description="Список заявок юриста")
 
 
+class LawyerResponseDTO(BaseModel):
+    message_id: int = Field(..., example=456, description="ID сообщения юриста")
+    note: str = Field(
+        ..., example="Проверка документов", description="Описание ответа юриста"
+    )
+
+
+class LawyerResponsesDTO(BaseModel):
+    total: int = Field(..., example=5, description="Общее количество ответов")
+    responses: list[LawyerResponseDTO] = Field(
+        ..., description="Список ответов юриста за указанный период"
+    )
+
+
 class LawyerRequestCreateResponseDTO(BaseModel):
     id: int = Field(..., example=123, description="ID созданной заявки")
     status: LawyerRequestStatus = Field(
