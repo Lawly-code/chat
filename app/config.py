@@ -1,3 +1,4 @@
+import json
 import os
 from dataclasses import dataclass, field
 
@@ -65,3 +66,12 @@ class Settings:
 
 
 settings = Settings()
+
+
+NOTIFICATIONS = {}
+
+NOTIFICATIONS_PATH = os.path.join(BASE_DIR, "data", "notifications.json")
+
+if os.path.exists(NOTIFICATIONS_PATH):
+    with open(NOTIFICATIONS_PATH, encoding="utf-8") as f:
+        NOTIFICATIONS = json.load(f)

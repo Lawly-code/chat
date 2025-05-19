@@ -1,0 +1,29 @@
+{
+  "lawyer_checked": {
+    "notification": {
+      "title": "Обращение проверено!",
+      "body": "\uD83D\uDE80 Скорее открывайте приложение и смотрите результат!"
+    },
+    "android": {
+      "priority": "high"
+    },
+    "apns": {
+      "headers": {
+        "apns-priority": "10"
+      },
+      "payload": {
+        "aps": {
+          "alert": {
+            "title": "Обращение проверено!",
+            "body": "\uD83D\uDE80 Скорее открывайте приложение и смотрите результат!"
+          },
+          "sound": "default"
+        }
+      }
+    },
+    "data": {
+      "lawyer_request_id": "{{lawyer_request_id}}",
+      "note": "{{note}}"
+    }
+  }
+}

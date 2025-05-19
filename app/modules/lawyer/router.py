@@ -50,17 +50,22 @@ async def create_lawyer_request(
     """
     Создание заявки к юристу от пользователя
     """
-    lawyer_request = await lawyer_service.create_lawyer_request_from_user(
-        user_id=current_user.user_id,
-        description=request_data.description,
-        document_bytes=request_data.document_bytes,
-    )
+    try:
+        lawyer_request = await lawyer_service.create_lawyer_request_from_user(
+            user_id=current_user.user_id,
+            description=request_data.description,
+            document_bytes=request_data.document_bytes,
+        )
 
-    return LawyerRequestCreateResponseDTO(
-        id=lawyer_request.id,
-        status=LawyerRequestStatus(lawyer_request.status.value),
-        created_at=lawyer_request.created_at,
-    )
+        return LawyerRequestCreateResponseDTO(
+            id=lawyer_request.id,
+            status=LawyerRequestStatus(lawyer_request.status.value),
+            created_at=lawyer_request.created_at,
+        )
+    except AccessDeniedError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.get(
