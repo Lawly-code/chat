@@ -59,7 +59,11 @@ class LawyerService:
         )
         return LawyerResponsesDTO(
             responses=[
-                LawyerResponseDTO(message_id=message.id, note=message.text)
+                LawyerResponseDTO(
+                    message_id=message.id,
+                    note=message.text,
+                    has_file=bool(message.document_url),
+                )
                 for message in messages
             ],
             total=total,

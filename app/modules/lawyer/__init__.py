@@ -23,6 +23,7 @@ from .response import (
     update_lawyer_request_response,
     get_document_response,
     create_lawyer_request_response,
+    get_lawyer_responses_response,
 )
 from .router import router
 
@@ -48,4 +49,5 @@ __all__ = [
     "update_lawyer_request_response",
     "get_document_response",
     "create_lawyer_request_response",
+    "get_lawyer_responses_response",
 ]

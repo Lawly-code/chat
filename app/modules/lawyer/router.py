@@ -33,6 +33,7 @@ from modules.lawyer.response import (
     update_lawyer_request_response,
     get_document_response,
     create_lawyer_request_response,
+    get_lawyer_responses_response,
 )
 
 router = APIRouter(tags=["Юрист"])
@@ -214,7 +215,7 @@ async def get_document(
     "/messages",
     summary="Получение ответов юриста",
     description=get_lawyer_responses_description,
-    responses=get_lawyer_requests_response,
+    responses=get_lawyer_responses_response,
     response_model=LawyerResponsesDTO,
 )
 async def get_lawyer_messages(

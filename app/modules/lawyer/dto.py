@@ -82,6 +82,7 @@ class LawyerResponseDTO(BaseModel):
     note: str = Field(
         ..., example="Проверка документов", description="Описание ответа юриста"
     )
+    has_file: bool = Field(..., example=True, description="Наличие файла в ответе")
 
 
 class LawyerResponsesDTO(BaseModel):
