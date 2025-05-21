@@ -22,7 +22,7 @@
       }
     },
     "data": {
-      "lawyer_request_id": "{{lawyer_request_id}}",
+      "lawyer_message_id": "{{lawyer_message_id}}",
       "note": "{{note}}"
     }
   }
