@@ -190,13 +190,13 @@ class LawyerService:
             )
 
             document_url = await self.s3_service.upload_file(encrypted_bytes)
-            await self.message_repo.create_user_lawyer_message(
+            mes = await self.message_repo.create_user_lawyer_message(
                 user_id=request.user_id, content=description, document_url=document_url
             )
             client = NotificationServiceClient(
                 host="notification_grpc_service", port=50051
             )
-            context = {"lawyer_request_id": request.id, "note": description or ""}
+            context = {"lawyer_message_id": mes.id, "note": description or ""}
             message = notification("lawyer_checked", context=context)
             await client.send_push_from_users(
                 request_data=PushRequestDTO(user_ids=[request.user_id], message=message)
