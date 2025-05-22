@@ -14,4 +14,4 @@ jobs:
         cd /home/lawly-prod/chat
         git fetch --all
         git reset --hard origin/master
-        docker compose up -d --build
+        docker compose -f docker-compose.prod.yml -p prod up -d --build
