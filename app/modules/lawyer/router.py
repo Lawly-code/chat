@@ -1,5 +1,9 @@
+import io
+
 from fastapi import APIRouter, Depends, HTTPException, Body, Query, Response, status
 from datetime import datetime
+
+from starlette.responses import StreamingResponse
 
 from api.auth.auth_bearer import JWTBearer, JWTHeader
 from lawly_db.db_models.enum_models import LawyerRequestStatusEnum
@@ -195,8 +199,8 @@ async def get_document(
             message_id=message_id,
         )
 
-        return Response(
-            content=document_bytes,
+        return StreamingResponse(
+            content=io.BytesIO(document_bytes),
             media_type="application/msword",
             headers={
                 "Content-Disposition": f"attachment; filename=document_{datetime.now().strftime('%Y%m%d%H%M%S')}.doc"
