@@ -2,6 +2,7 @@ import logging
 from protos.ai_service.client import AIAssistantClient
 from protos.ai_service.dto import AIRequestDTO
 
+from config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +14,9 @@ class AIClientService:
 
     def __init__(self):
         # Инициализация с указанными параметрами (хост ai_grpc_service и порт 50051)
-        self.client = AIAssistantClient(host="ai_grpc_service", port=50051)
+        self.client = AIAssistantClient(
+            host=settings.ai_service.host, port=settings.ai_service.port
+        )
         self.connected = False
 
     async def connect(self):

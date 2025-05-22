@@ -4,7 +4,6 @@ from dataclasses import dataclass, field
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -56,6 +55,15 @@ class UserGrpcSettings(BaseSettings):
     )
 
 
+class AIGrpcSettings(BaseSettings):
+    host: str
+    port: int
+
+    model_config = SettingsConfigDict(
+        env_prefix="ai_grpc_", env_file_encoding="utf-8", extra="ignore"
+    )
+
+
 @dataclass
 class Settings:
     jwt_settings: JWTSettings = field(default_factory=JWTSettings)
@@ -63,10 +71,10 @@ class Settings:
     encryption_settings: EncryptionSettings = field(default_factory=EncryptionSettings)
     s3_settings: S3Settings = field(default_factory=S3Settings)
     user_service: UserGrpcSettings = field(default_factory=UserGrpcSettings)
+    ai_service: AIGrpcSettings = field(default_factory=AIGrpcSettings)
 
 
 settings = Settings()
-
 
 NOTIFICATIONS = {}
 
