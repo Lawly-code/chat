@@ -180,6 +180,7 @@ async def update_lawyer_request(
 @router.get(
     "/document",
     summary="Получение документа",
+    response_class=StreamingResponse,
     description=get_document_description,
     responses=get_document_response,
 )
