@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from lawly_db.db_models.db_session import global_init
 
+from config import settings
 from modules import ai, lawyer
 from websockets_server.router import router as websocket_router
 from websockets_server.workers.ai_worker import AIWorker
@@ -31,7 +32,7 @@ app = FastAPI(title="Lawly Chat API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://lawyer.lawly.ru"],
+    allow_origins=settings.allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
