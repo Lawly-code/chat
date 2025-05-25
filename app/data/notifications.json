@@ -22,6 +22,7 @@
       }
     },
     "data": {
+      "notification_type": "lawyer_answer",
       "lawyer_message_id": "{{lawyer_message_id}}",
       "note": "{{note}}"
     }
